@@ -11,14 +11,19 @@ public class WorkWithFile {
         try{
             fileWriter = new FileWriter(NAME_OF_RESULT_FILE);
             jsonString.append("{\n");
-            map.entrySet().stream().forEach(e -> jsonString
-                    .append("\"")
-                    .append(e.getKey())
-                    .append("\" : \"")
-                    .append(e.getValue())
-                    .append("\",\n"));
-            int index = jsonString.lastIndexOf(",\n");
-            jsonString.replace(index, index+1, "\n}");
+            if (!map.isEmpty()) {
+                map.entrySet().stream().forEach(e -> jsonString
+                        .append("\"")
+                        .append(e.getKey())
+                        .append("\" : \"")
+                        .append(e.getValue())
+                        .append("\",\n"));
+                int index = jsonString.lastIndexOf(",\n");
+                jsonString.replace(index, index + 1, "\n}");
+            }
+            else {
+                jsonString.append(" }");
+            }
             fileWriter.append(jsonString.toString());
         }catch (IOException e){
             System.err.println("Write error " + e);

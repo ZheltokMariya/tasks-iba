@@ -5,6 +5,9 @@ import java.util.regex.Pattern;
 public class JsonFlattener {
 
     public static Map<String, String> convertJsonIntoFlatMap(String json){
+        if (json == null){
+            return new LinkedHashMap<>();
+        }
         String jsonString = json.replace(" ", "").replace("\n", "");
 
         Map<String, String> map = new LinkedHashMap<>();
@@ -20,6 +23,10 @@ public class JsonFlattener {
             keyList.add(keyMatcher.group().replaceAll("([,{\":])", ""));
 
             if (keyMatcher.group().contains("[")){
+                if (json.substring(keyMatcher.end(), keyMatcher.end()+1).equals("]")) {
+                    keyList.removeLast();
+                    continue;
+                }
                 String substringWithArray = jsonString.substring(keyMatcher.start());
                 String substringWithOnlyArrayElements = jsonString.substring(keyMatcher.end());
                 int arrayIndex = 0;
@@ -61,14 +68,25 @@ public class JsonFlattener {
                                 keyList.removeLast();
                             }
                             if (arrayNestedElementMatcher.group().contains("}")) {
-                                int numberOfFreeKeys = (int) arrayNestedElementMatcher.group().codePoints().filter(ch -> ch == '}').count();
-                                for (int i = 0; i < numberOfFreeKeys; i++) {
-                                    keyList.removeLast();
-                                }
+                                removeFreeKeysFromList(arrayElementMatcher, keyList);
                                 if (arrayNestedElementMatcher.group().contains("]")) {
                                     break;
                                 }
                                 if (arrayNestedElementMatcher.group().contains("},{")) {
+                                    arrayIndex++;
+                                    keyList.add(keyForArrayIndex + "[" + arrayIndex + "]");
+                                }
+                            }
+                        }
+                        else{
+                            Pattern emptyBracketsPattern = Pattern.compile("(}*,?\\{?]?}?)");
+                            Matcher emptyBracketsMatcher = emptyBracketsPattern.matcher(json.substring(keyMatcher.end()));
+                            if (emptyBracketsMatcher.find()){
+                                removeFreeKeysFromList(emptyBracketsMatcher, keyList);
+                                if (emptyBracketsMatcher.group().contains("]")) {
+                                    break;
+                                }
+                                if (emptyBracketsMatcher.group().contains("},{")) {
                                     arrayIndex++;
                                     keyList.add(keyForArrayIndex + "[" + arrayIndex + "]");
                                 }
@@ -88,6 +106,11 @@ public class JsonFlattener {
                         }
                     }
                 }
+                else {
+                    if (jsonString.substring(keyMatcher.end(), keyMatcher.end()+1).equals("}")){
+                        keyList.removeLast();
+                    }
+                }
             }
         }
 
@@ -104,4 +127,10 @@ public class JsonFlattener {
         return key.toString();
     }
 
+    private static void removeFreeKeysFromList(Matcher matcher, LinkedList<String> keyList){
+        int numberOfFreeKeys = (int) matcher.group().codePoints().filter(ch -> ch == '}').count();
+        for (int i = 0; i < numberOfFreeKeys; i++) {
+            keyList.removeLast();
+        }
+    }
 }
